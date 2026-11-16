@@ -4,10 +4,8 @@
 
 #include "EntityManager.hpp"
 
-int main()
+static void CheckBasicHandleCreation()
 {
-	std::cout << "Test Started" << "\n";
-
 	std::unique_ptr<EntityManager> entityManager = std::make_unique<EntityManager>();
 
 	EntityId entity = entityManager->Create();
@@ -28,8 +26,13 @@ int main()
 	assert(entityManager->IsAlive(entity2));
 
 	entityManager->Destroy(entity2);
+}
 
-	// Check if the generation mask correctly wraps up the generation to 0 when it goes over 4095
+// Check if the generation mask correctly wraps up the generation to 0 when it goes over 4095
+static void CheckGenerationWrapping()
+{
+	std::unique_ptr<EntityManager> entityManager = std::make_unique<EntityManager>();
+
 	for (size_t i = 0; i < 5000; i++)
 	{
 		EntityId tempEntity = entityManager->Create();
@@ -40,8 +43,13 @@ int main()
 
 		assert(!entityManager->IsAlive(tempEntity));
 	}
+}
 
-	// Check double destroy handle
+// Check double destroy handle
+static void CheckDoubleDestroyHandle()
+{
+	std::unique_ptr<EntityManager> entityManager = std::make_unique<EntityManager>();
+
 	EntityId staleEntity = entityManager->Create();
 
 	assert(entityManager->IsAlive(staleEntity));
@@ -56,10 +64,15 @@ int main()
 
 	assert(testEntity1 != testEntity2);
 
-	// Check edge case
-	assert(!entityManager->IsAlive(Entity::Create(entityManager->GetGenerationnVectorSize(), 0)));
+	entityManager->Destroy(testEntity1);
+	entityManager->Destroy(testEntity2);
+}
 
-	// Checking free indices FIFO order
+// Checking free indices FIFO order
+static void CheckFIFO()
+{
+	std::unique_ptr<EntityManager> entityManager = std::make_unique<EntityManager>();
+
 	EntityId entity_1 = entityManager->Create();
 	EntityId entity_2 = entityManager->Create();
 	EntityId entity_3 = entityManager->Create();
@@ -73,7 +86,63 @@ int main()
 	assert(Entity::GetIndex(entity_4) == Entity::GetIndex(entity_3));
 	assert(Entity::GetIndex(entity_5) == Entity::GetIndex(entity_2));
 
-	std::cout << "All Test Passed" << "\n";
+	entityManager->Destroy(entity_1);
+	entityManager->Destroy(entity_4);
+	entityManager->Destroy(entity_5);
+}
+
+// Check edge case
+static void CheckEdgeCases()
+{
+	std::unique_ptr<EntityManager> entityManager = std::make_unique<EntityManager>();
+
+	assert(!entityManager->IsAlive(Entity::Create(entityManager->GetGenerationVectorSize(), 0)));
+}
+
+// Checking slot overflow.
+static void CheckSlotIndexOverflow()
+{
+	std::unique_ptr<EntityManager> entityManager = std::make_unique<EntityManager>();
+
+	for (size_t i = 0; i <= Entity::INDEX_MASK; i++)
+	{
+		EntityId tempEntity = entityManager->Create();
+	}
+
+	bool didOverflow = false;
+
+	try
+	{
+		EntityId tempEntity = entityManager->Create();
+	}
+	catch (const std::length_error& e)
+	{
+		didOverflow = true;
+		std::cout << "Exception: " << e.what() << "\n";
+	}
+
+	assert(didOverflow);
+
+	assert(entityManager->GetGenerationVectorSize() == Entity::INDEX_MASK + 1);
+}
+
+int main()
+{
+	std::cout << "Test Started" << "\n";
+
+	CheckBasicHandleCreation();
+
+	CheckGenerationWrapping();
+
+	CheckDoubleDestroyHandle();
+
+	CheckEdgeCases();
+
+	CheckFIFO();
+
+	CheckSlotIndexOverflow();
+
+	std::cout << "All Test Passed" << std::endl;
 
 	return 0;
 }

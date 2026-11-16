@@ -15,6 +15,11 @@ public:
 
 	void Destroy(EntityId entity);
 
+	size_t GetGenerationVectorSize() const
+	{
+		return m_GenerationsVector.size();
+	}
+
 private:
 	std::vector<EntityGeneration> m_GenerationsVector;
 	std::queue<EntityIndex> m_FreeIndicesQueue;

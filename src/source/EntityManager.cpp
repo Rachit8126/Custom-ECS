@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include "EntityManager.hpp"
 
 EntityId EntityManager::Create()
@@ -10,6 +12,12 @@ EntityId EntityManager::Create()
 	}
 
 	EntityIndex index = static_cast<EntityIndex>(m_GenerationsVector.size());
+
+	if (index > Entity::INDEX_MASK)
+	{
+		throw std::length_error("entity limit reached");
+	}
+
 	m_GenerationsVector.push_back(0);
 
 	return Entity::Create(index, 0);
